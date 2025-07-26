@@ -1,8 +1,5 @@
-from modules.Data import DataToSheet
+from gui.Windows import Windows
 
-#app = Application()
-#app.master.title('Sample')
-#app.mainloop()
+interface = Windows()
 
-data = DataToSheet()
-data.run()
+interface.mainloop()

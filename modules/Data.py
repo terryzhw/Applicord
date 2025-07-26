@@ -19,21 +19,6 @@ class DataToSheet:
 
     def addData(self, company, position, date, status):
         self.ws.append_row([company, position, date, status])
-    
-    def run(self):
-        while True:
-            company = input("Company: ").strip()
-            if not company:
-                print("Quit")
-                break
-            position = input("Position: ").strip()
-            date = "7/22/25"
-            status = "Submitted"
-            self.addData(company, position, date, status)
-            print(f"Added {company!r}\n")
-
-if __name__ == "__main__":
-    DataToSheet().run()
 
 
 
