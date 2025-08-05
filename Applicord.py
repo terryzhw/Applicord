@@ -1,4 +1,4 @@
-from gui.Windows import Windows
+from gui.windows import Windows
 
 interface = Windows()
 

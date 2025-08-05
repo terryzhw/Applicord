@@ -8,7 +8,7 @@ class Menu(tk.Frame):
         label.pack(padx=10, pady=10)
         self.controller = controller
 
-        from gui.Entry import Entry
+        from gui.entry import Entry
 
         switch_entry_button = tk.Button(
             self,

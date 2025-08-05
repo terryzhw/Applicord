@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
-from modules.Data import DataToSheet
+from modules.data import DataToSheet
 from datetime import datetime
-from gui.Menu import Menu
-from gui.Entry import Entry
+from gui.menu import Menu
+from gui.entry import Entry
 
 
 class Windows(tk.Tk):

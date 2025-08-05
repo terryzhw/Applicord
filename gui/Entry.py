@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from modules.Data import DataToSheet
+from modules.data import DataToSheet
 from datetime import datetime
-from gui.Menu import Menu
+from gui.menu import Menu
 
 class Entry(tk.Frame):
     def __init__(self, parent, controller):

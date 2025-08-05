@@ -17,11 +17,21 @@ class DataToSheet:
                 'https://www.googleapis.com/auth/drive.metadata.readonly'
             ]
             TOKEN_PATH = 'token.pickle'
+            creds = None
 
-            creds  = InstalledAppFlow.from_client_secrets_file(
-                os.getenv('CREDENTIALS'),
-                SCOPES
-            ).run_local_server(port=0)
+            if os.path.exists(TOKEN_PATH):
+                with open(TOKEN_PATH, 'rb') as token:
+                    creds = pickle.load(token)
+
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        os.getenv('CREDENTIALS'), SCOPES)
+                    creds = flow.run_local_server(port=0)
+                with open(TOKEN_PATH, 'wb') as token:
+                    pickle.dump(creds, token)
 
             self.gc = gspread.authorize(creds)
             try:
@@ -31,7 +41,7 @@ class DataToSheet:
                 print("Error: Can't find spreadsheet ID")
                 return
             except gspread.WorksheetNotFound:
-                print("Error: Can't find Worksheet Name")
+                print("Error: Can't find worksheet name")
             return
         except HttpError as error: 
             print(f"Error opening sheet: {error}")
