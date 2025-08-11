@@ -1,9 +1,9 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPalette, QColor
-from gui.menu import Menu
-from gui.entry import Entry
+from gui.menu_page import MenuPage
+from gui.entry_page import EntryPage
+from gui.classifier_page import ClassifierPage
 
 
 class Windows(QMainWindow):
@@ -52,11 +52,13 @@ class Windows(QMainWindow):
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
 
-        self.menu_frame = Menu(self)
-        self.entry_frame = Entry(self)
+        self.menu_frame = MenuPage(self)
+        self.entry_frame = EntryPage(self)
+        self.classifier_frame = ClassifierPage(self)
 
         self.stacked_widget.addWidget(self.menu_frame)
         self.stacked_widget.addWidget(self.entry_frame)
+        self.stacked_widget.addWidget(self.classifier_frame)
 
         self.show_frame("Menu")
 
@@ -65,6 +67,8 @@ class Windows(QMainWindow):
             self.stacked_widget.setCurrentWidget(self.menu_frame)
         elif frame_name == "Entry":
             self.stacked_widget.setCurrentWidget(self.entry_frame)
+        elif frame_name == "Classifier":
+            self.stacked_widget.setCurrentWidget(self.classifier_frame)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

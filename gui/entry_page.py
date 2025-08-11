@@ -1,12 +1,10 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                              QPushButton, QLabel, QMessageBox, QSpacerItem, QSizePolicy, QApplication)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QClipboard
 from modules.data import DataToSheet
 from datetime import datetime
-import sys
 
-class Entry(QWidget):
+class EntryPage(QWidget):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
@@ -125,25 +123,7 @@ class Entry(QWidget):
         self.show_message("GitHub URL copied to clipboard")
 
     def show_message(self, message):
-        msg_box = QMessageBox()
-        msg_box.setIcon(QMessageBox.Information)
-        msg_box.setText(message)
-        msg_box.setWindowTitle("Success")
-        msg_box.setStyleSheet("""
-            QMessageBox {
-                background-color: #2b2b2b;
-                color: #ffffff;
-            }
-            QMessageBox QPushButton {
-                background-color: #404040;
-                color: #ffffff;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 8px;
-                min-width: 60px;
-            }
-        """)
-        msg_box.exec_()
+        self._show_styled_message(message, QMessageBox.Information, "Success")
 
     def display_text(self):
         data = DataToSheet()
@@ -163,10 +143,13 @@ class Entry(QWidget):
         self.eCompany.setFocus()
 
     def show_error_message(self, message):
+        self._show_styled_message(message, QMessageBox.Warning, "Error")
+        
+    def _show_styled_message(self, message, icon, title):
         msg_box = QMessageBox()
-        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setIcon(icon)
         msg_box.setText(message)
-        msg_box.setWindowTitle("Error")
+        msg_box.setWindowTitle(title)
         msg_box.setStyleSheet("""
             QMessageBox {
                 background-color: #2b2b2b;
