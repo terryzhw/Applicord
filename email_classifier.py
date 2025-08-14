@@ -1,7 +1,6 @@
 import os
 import pickle
 from typing import Dict, Tuple, List, Any
-
 import torch
 import pandas as pd
 import numpy as np
@@ -11,6 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score
 from sklearn.utils.class_weight import compute_class_weight
 from transformers import RobertaTokenizer, RobertaForSequenceClassification, Trainer, TrainingArguments, EarlyStoppingCallback
+if hasattr(torch.backends, 'mps'):
+    torch.backends.mps.is_available = lambda: False
 
 class EmailDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_length=512):
@@ -267,7 +268,7 @@ def main():
             classifier.evaluate_test_set()
     else:
         print("Training model...")
-        train_results = classifier.train('data.csv', text_column='Email', label_column='Status', epochs=32)
+        train_results = classifier.train('data.csv', text_column='Email', label_column='Status', epochs=16)
         print(f"Validation Results: {train_results}")
         
         classifier.save_model(model_path)
