@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Dict, Tuple, List, Any
+from typing import Dict, Any
 import torch
 import pandas as pd
 import numpy as np
@@ -9,7 +9,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score
 from sklearn.utils.class_weight import compute_class_weight
-from transformers import RobertaTokenizer, RobertaForSequenceClassification, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import (
+    RobertaTokenizer, 
+    RobertaForSequenceClassification, 
+    Trainer, 
+    TrainingArguments, 
+    EarlyStoppingCallback
+)
+
 if hasattr(torch.backends, 'mps'):
     torch.backends.mps.is_available = lambda: False
 
@@ -47,9 +54,8 @@ class EmailClassifier:
         self.label_encoder = LabelEncoder()
         self.model = None
         self.device = torch.device('cpu')
-        print(f"Using device: {self.device}")
     
-    def prepare_datasets(self, csv_path: str, text_column: str, label_column: str) -> Tuple[List[str], List[str], List[str], List[int], List[int], List[int]]:
+    def prepare_datasets(self, csv_path: str, text_column: str, label_column: str):
         df = pd.read_csv(csv_path, quotechar='"', escapechar='\\')
         
         valid_labels = ['reject', 'not_reject']
@@ -62,8 +68,12 @@ class EmailClassifier:
         labels = df[label_column].tolist()
         y = self.label_encoder.fit_transform(labels)
         
-        X_temp, X_test, y_temp, y_test = train_test_split(texts, y, test_size=0.2, random_state=42, stratify=y)
-        X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp)
+        X_temp, X_test, y_temp, y_test = train_test_split(
+            texts, y, test_size=0.2, random_state=42, stratify=y
+        )
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp
+        )
         
         print(f"Train set: {len(X_train)} samples")
         print(f"Validation set: {len(X_val)} samples")
@@ -81,9 +91,12 @@ class EmailClassifier:
         self.model.to(self.device)
         return self.model
     
-    def train(self, csv_path: str, text_column: str = 'email_text', label_column: str = 'is_rejection', 
-              epochs: int = 8, batch_size: int = 16, learning_rate: float = 5e-5, warmup_steps: int = 200, weight_decay: float = 0.01) -> Dict[str, float]:
-        train_texts, val_texts, test_texts, train_labels, val_labels, test_labels = self.prepare_datasets(csv_path, text_column, label_column)
+    def train(self, csv_path: str, text_column: str = 'email_text', 
+              label_column: str = 'is_rejection', epochs: int = 8, 
+              batch_size: int = 16, learning_rate: float = 5e-5, 
+              warmup_steps: int = 200, weight_decay: float = 0.01):
+        data = self.prepare_datasets(csv_path, text_column, label_column)
+        train_texts, val_texts, test_texts, train_labels, val_labels, test_labels = data
         
         self.test_texts = test_texts
         self.test_labels = test_labels
@@ -91,12 +104,18 @@ class EmailClassifier:
         num_classes = len(self.label_encoder.classes_)
         self.create_model(num_classes)
         
-        class_weights = compute_class_weight('balanced', classes=np.unique(train_labels), y=train_labels)
+        class_weights = compute_class_weight(
+            'balanced', classes=np.unique(train_labels), y=train_labels
+        )
         class_weights = torch.tensor(class_weights, dtype=torch.float).to(self.device)
         print(f"Class weights: {class_weights.cpu()}")
         
-        train_dataset = EmailDataset(train_texts, train_labels, self.tokenizer, self.max_length)
-        val_dataset = EmailDataset(val_texts, val_labels, self.tokenizer, self.max_length)
+        train_dataset = EmailDataset(
+            train_texts, train_labels, self.tokenizer, self.max_length
+        )
+        val_dataset = EmailDataset(
+            val_texts, val_labels, self.tokenizer, self.max_length
+        )
         
         training_args = TrainingArguments(
             output_dir='./model',
@@ -131,7 +150,7 @@ class EmailClassifier:
                 super().__init__(*args, **kwargs)
                 self.class_weights = class_weights
             
-            def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+            def compute_loss(self, model, inputs, return_outputs=False):
                 labels = inputs.get("labels")
                 outputs = model(**inputs)
                 logits = outputs.get('logits')
@@ -147,7 +166,10 @@ class EmailClassifier:
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=3, early_stopping_threshold=0.01)]
+            callbacks=[EarlyStoppingCallback(
+                early_stopping_patience=3, 
+                early_stopping_threshold=0.01
+            )]
         )
         
         trainer.train()
@@ -187,8 +209,10 @@ class EmailClassifier:
             'is_rejection': predicted_class == 'reject',
             'predicted_class': predicted_class,
             'confidence': confidence,
-            'probabilities': {class_name: probabilities[0][i].item() 
-                           for i, class_name in enumerate(self.label_encoder.classes_)}
+            'probabilities': {
+                class_name: probabilities[0][i].item() 
+                for i, class_name in enumerate(self.label_encoder.classes_)
+            }
         }
     
     def save_model(self, filepath: str) -> None:
@@ -202,7 +226,7 @@ class EmailClassifier:
             pickle.dump(self.label_encoder, f)
         
         config = {
-            'model_name': self.model_name, 
+            'model_name': self.model_name,
             'max_length': self.max_length,
             'test_texts': getattr(self, 'test_texts', None),
             'test_labels': getattr(self, 'test_labels', None)
@@ -232,18 +256,18 @@ class EmailClassifier:
         if self.test_texts is None or self.test_labels is None:
             raise ValueError("No test set available. Train the model first.")
         
-        test_dataset = EmailDataset(self.test_texts, self.test_labels, self.tokenizer, self.max_length)
-        
-        from transformers import Trainer
+        test_dataset = EmailDataset(
+            self.test_texts, self.test_labels, self.tokenizer, self.max_length
+        )
         trainer = Trainer(
             model=self.model,
             eval_dataset=test_dataset,
             compute_metrics=lambda eval_pred: {
                 'accuracy': accuracy_score(
-                    eval_pred[1], 
+                    eval_pred[1],
                     np.argmax(eval_pred[0], axis=1)
                 )
-            },
+            }
         )
         
         test_results = trainer.evaluate()
@@ -254,7 +278,6 @@ class EmailClassifier:
             'test_accuracy': test_results['eval_accuracy'],
             'test_loss': test_results['eval_loss']
         }
-        
 
 def main():
     classifier = EmailClassifier(model_name='roberta-base')
@@ -268,13 +291,18 @@ def main():
             classifier.evaluate_test_set()
     else:
         print("Training model...")
-        train_results = classifier.train('data.csv', text_column='Email', label_column='Status', epochs=16)
+        train_results = classifier.train(
+            'data.csv', 
+            text_column='Email', 
+            label_column='Status', 
+            epochs=16
+        )
         print(f"Validation Results: {train_results}")
         
         classifier.save_model(model_path)
         classifier.evaluate_test_set()
         
-    test_email = "Unfortunately, we will be moving with other candidates"
+    test_email = ""
     result = classifier.predict(test_email)
     print(f"Prediction: {result}")
 
