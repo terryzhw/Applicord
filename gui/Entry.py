@@ -1,19 +1,80 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                              QPushButton, QLabel, QMessageBox, QSpacerItem, QSizePolicy, QApplication)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QClipboard
 from modules.data import DataToSheet
 from datetime import datetime
-import sys
 
 class Entry(QWidget):
+    LINKEDIN_URL = "https://www.linkedin.com/in/terryzhw/"
+    GITHUB_URL = "https://github.com/terryzhw"
+    
+    BUTTON_STYLES = {
+        'linkedin': """
+            QPushButton {
+                background-color: #0077b5;
+                font-size: 11px;
+                padding: 10px;
+                margin: 5px;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: #005885;
+            }
+        """,
+        'github': """
+            QPushButton {
+                background-color: #333333;
+                font-size: 11px;
+                padding: 10px;
+                margin: 5px;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: #24292e;
+            }
+        """,
+        'primary': """
+            QPushButton {
+                background-color: #28a745;
+                font-size: 14px;
+                padding: 12px;
+                margin: 10px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """,
+        'secondary': """
+            QPushButton {
+                background-color: #6c757d;
+                font-size: 14px;
+                padding: 12px;
+                margin: 10px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """
+    }
+    
+    MESSAGE_BOX_STYLE = """
+        QMessageBox {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        QMessageBox QPushButton {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 5px;
+            padding: 8px;
+            min-width: 60px;
+        }
+    """
+
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
-        
-        self.linkedin_url = "https://www.linkedin.com/in/terryzhw/"
-        self.github_url = "https://github.com/terryzhw"
-        
         self.init_ui()
 
     def init_ui(self):
@@ -26,35 +87,13 @@ class Entry(QWidget):
         
         profile_layout = QHBoxLayout()
         
-        linkedin_btn = QPushButton(f"Copy LinkedIn\n{self.linkedin_url}")
+        linkedin_btn = QPushButton(f"Copy LinkedIn\n{self.LINKEDIN_URL}")
         linkedin_btn.clicked.connect(self.copy_linkedin)
-        linkedin_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0077b5;
-                font-size: 11px;
-                padding: 10px;
-                margin: 5px;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background-color: #005885;
-            }
-        """)
+        linkedin_btn.setStyleSheet(self.BUTTON_STYLES['linkedin'])
         
-        github_btn = QPushButton(f"Copy GitHub\n{self.github_url}")
+        github_btn = QPushButton(f"Copy GitHub\n{self.GITHUB_URL}")
         github_btn.clicked.connect(self.copy_github)
-        github_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #333333;
-                font-size: 11px;
-                padding: 10px;
-                margin: 5px;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background-color: #24292e;
-            }
-        """)
+        github_btn.setStyleSheet(self.BUTTON_STYLES['github'])
         
         profile_layout.addWidget(linkedin_btn)
         profile_layout.addWidget(github_btn)
@@ -80,34 +119,14 @@ class Entry(QWidget):
         
         add_button = QPushButton("Add Entry")
         add_button.clicked.connect(self.display_text)
-        add_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                font-size: 14px;
-                padding: 12px;
-                margin: 10px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """)
+        add_button.setStyleSheet(self.BUTTON_STYLES['primary'])
         layout.addWidget(add_button)
         
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
         
         back_button = QPushButton("Back")
         back_button.clicked.connect(lambda: self.controller.show_frame("Menu"))
-        back_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                font-size: 14px;
-                padding: 12px;
-                margin: 10px;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
+        back_button.setStyleSheet(self.BUTTON_STYLES['secondary'])
         layout.addWidget(back_button)
         
         self.setLayout(layout)
@@ -116,34 +135,16 @@ class Entry(QWidget):
 
     def copy_linkedin(self):
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.linkedin_url)
+        clipboard.setText(self.LINKEDIN_URL)
         self.show_message("LinkedIn URL copied to clipboard")
 
     def copy_github(self):
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.github_url)
+        clipboard.setText(self.GITHUB_URL)
         self.show_message("GitHub URL copied to clipboard")
 
     def show_message(self, message):
-        msg_box = QMessageBox()
-        msg_box.setIcon(QMessageBox.Information)
-        msg_box.setText(message)
-        msg_box.setWindowTitle("Success")
-        msg_box.setStyleSheet("""
-            QMessageBox {
-                background-color: #2b2b2b;
-                color: #ffffff;
-            }
-            QMessageBox QPushButton {
-                background-color: #404040;
-                color: #ffffff;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 8px;
-                min-width: 60px;
-            }
-        """)
-        msg_box.exec_()
+        self.show_message_box(message, "Success", QMessageBox.Information)
 
     def display_text(self):
         data = DataToSheet()
@@ -163,22 +164,12 @@ class Entry(QWidget):
         self.eCompany.setFocus()
 
     def show_error_message(self, message):
+        self.show_message_box(message, "Error", QMessageBox.Warning)
+    
+    def show_message_box(self, message, title, icon):
         msg_box = QMessageBox()
-        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setIcon(icon)
         msg_box.setText(message)
-        msg_box.setWindowTitle("Error")
-        msg_box.setStyleSheet("""
-            QMessageBox {
-                background-color: #2b2b2b;
-                color: #ffffff;
-            }
-            QMessageBox QPushButton {
-                background-color: #404040;
-                color: #ffffff;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 8px;
-                min-width: 60px;
-            }
-        """)
+        msg_box.setWindowTitle(title)
+        msg_box.setStyleSheet(self.MESSAGE_BOX_STYLE)
         msg_box.exec_()

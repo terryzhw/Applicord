@@ -209,3 +209,5 @@ __marimo__/
 credentials.json
 token.pickle
 .vscode/
+data.csv
+model/
