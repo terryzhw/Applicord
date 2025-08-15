@@ -144,7 +144,7 @@ class Entry(QWidget):
         self.show_message("GitHub URL copied to clipboard")
 
     def show_message(self, message):
-        self._show_message_box(message, "Success", QMessageBox.Information)
+        self.show_message_box(message, "Success", QMessageBox.Information)
 
     def display_text(self):
         data = DataToSheet()
@@ -164,9 +164,9 @@ class Entry(QWidget):
         self.eCompany.setFocus()
 
     def show_error_message(self, message):
-        self._show_message_box(message, "Error", QMessageBox.Warning)
+        self.show_message_box(message, "Error", QMessageBox.Warning)
     
-    def _show_message_box(self, message, title, icon):
+    def show_message_box(self, message, title, icon):
         msg_box = QMessageBox()
         msg_box.setIcon(icon)
         msg_box.setText(message)

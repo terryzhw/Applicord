@@ -16,7 +16,7 @@ class DataToSheet:
                 "https://www.googleapis.com/auth/spreadsheets",
                 'https://www.googleapis.com/auth/drive.metadata.readonly'
             ]
-            TOKEN_PATH = 'token.pickle'
+            TOKEN_PATH = 'sheets_token.pickle'
             creds = None
 
             if os.path.exists(TOKEN_PATH):
@@ -42,7 +42,7 @@ class DataToSheet:
                 return
             except gspread.WorksheetNotFound:
                 print("Error: Can't find worksheet name")
-            return
+                return
         except HttpError as error: 
             print(f"Error opening sheet: {error}")
             return error
@@ -58,10 +58,37 @@ class DataToSheet:
             self.ws.update(cell_range, 
                     [[company, position, date, status]],
                     value_input_option="USER_ENTERED")
-            print(f"Wrote to {cell_range}")
         except HttpError as error:
             print(f"Error occurred: {error}")
             return error
+    
+    def getCompanyNames(self):
+        try:
+            all_val = self.ws.get_all_values()
+            companies = []
+            
+            header_terms = {
+                'company', 'position', 'date', 'status', 'submitted', 'rejected', 
+                'in progress', 'key', 'applicord', 'notes', 'application'
+            }
+            
+            for row in all_val[1:] if len(all_val) > 1 else all_val:
+                if len(row) > 0 and row[0]:  
+                    company_name = row[0].strip()
+                    if company_name and company_name.lower() not in header_terms:
+                        companies.append(company_name)
+            
+            unique_companies = []
+            seen = set()
+            for company in companies:
+                if company not in seen:
+                    unique_companies.append(company)
+                    seen.add(company)
+            
+            return unique_companies
+        except HttpError as error:
+            print(f"Error reading spreadsheet: {error}")
+            return []
         
 
 
