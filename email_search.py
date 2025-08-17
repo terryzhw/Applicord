@@ -122,7 +122,7 @@ class CompanySearcher:
                 if self.should_include_email(is_rejection):
                     emails_data.append(email_data)
                     rejection_count += 1
-                    self.display_email_summary(email_data, rejection_count, company_name, is_rejection)
+                    self.display_email_summary(email_data, rejection_count, is_rejection)
                     
             except Exception as e:
                 print(f"Error processing email {i}: {str(e)}")
@@ -150,15 +150,15 @@ class CompanySearcher:
         return prediction['is_rejection']
     
     def should_include_email(self, is_rejection):
-        return not self.classifier or is_rejection
+        return is_rejection
     
-    def display_email_summary(self, email_data, count, company_name, is_rejection):
+    def display_email_summary(self, email_data, count, is_rejection):
         status_indicator = "Rejection" if is_rejection else "📧"
         print(f"{status_indicator} Email #{count}")
-        print(f"From: {email_data['from'], company_name}")
-        print(f"Subject: {email_data['subject'], company_name}")
+        print(f"From: {email_data['from']}")
+        print(f"Subject: {email_data['subject']}")
         print(f"Date: {email_data['date']}")
-        print(f"Snippet: {email_data['snippet'][:100], company_name}...")
+        print(f"Snippet: {email_data['snippet'][:100]}...")
         
         if self.classifier and 'classification' in email_data:
             confidence = email_data['classification']['confidence']
@@ -254,7 +254,7 @@ class CompanySearcher:
         return body
     
     def contains_html(self, text):
-        return '<html' in text.lower() or '<body' in text.lower()
+        return '<' in text and '>' in text
     
     def search_and_display_detailed(self, company_name, max_results=None):
         emails = self.search_emails_by_company(company_name, max_results)
@@ -278,7 +278,7 @@ class CompanySearcher:
             
             self.display_search_header(companies)
             all_emails = self.search_multiple_companies(companies, max_results_per_company)
-            self.display_search_summary(companies, all_emails)
+            self.display_search_summary(all_emails)
             
             return all_emails
             
@@ -316,10 +316,9 @@ class CompanySearcher:
         
         return all_emails
     
-    def display_search_summary(self, companies, all_emails):
+    def display_search_summary(self, all_emails):
         print(f"\n\nSUMMARY:")
-        print(f"Total companies searched: {len(companies)}")
-        print(f"Total rejection emails found: {len(all_emails)}")
+        print(f"Rejection emails found: {len(all_emails)}")
     
     def handle_spreadsheet_error(self, error):
         import traceback
@@ -329,6 +328,7 @@ class CompanySearcher:
 
 def main():
     searcher = CompanySearcher()
+    
     searcher.search_all_companies_from_spreadsheet()
 
 if __name__ == "__main__":
