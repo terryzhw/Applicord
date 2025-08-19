@@ -8,55 +8,6 @@ class EntryPage(QWidget):
     LINKEDIN_URL = "https://www.linkedin.com/in/terryzhw/"
     GITHUB_URL = "https://github.com/terryzhw"
     
-    BUTTON_STYLES = {
-        'linkedin': """
-            QPushButton {
-                background-color: #333333;
-                font-size: 11px;
-                padding: 10px;
-                margin: 5px;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background-color: #24292e;
-            }
-        """,
-        'github': """
-            QPushButton {
-                background-color: #333333;
-                font-size: 11px;
-                padding: 10px;
-                margin: 5px;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background-color: #24292e;
-            }
-        """,
-        'primary': """
-            QPushButton {
-                background-color: #28a745;
-                font-size: 14px;
-                padding: 12px;
-                margin: 10px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """,
-        'secondary': """
-            QPushButton {
-                background-color: #6c757d;
-                font-size: 14px;
-                padding: 12px;
-                margin: 10px;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """
-    }
-    
     MESSAGE_BOX_STYLE = """
         QMessageBox {
             background-color: #2b2b2b;
@@ -89,11 +40,33 @@ class EntryPage(QWidget):
         
         linkedin_btn = QPushButton(f"Copy LinkedIn\n{self.LINKEDIN_URL}")
         linkedin_btn.clicked.connect(self.copy_linkedin)
-        linkedin_btn.setStyleSheet(self.BUTTON_STYLES['linkedin'])
+        linkedin_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #333333;
+                font-size: 11px;
+                padding: 10px;
+                margin: 5px;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: #24292e;
+            }
+        """)
         
         github_btn = QPushButton(f"Copy GitHub\n{self.GITHUB_URL}")
         github_btn.clicked.connect(self.copy_github)
-        github_btn.setStyleSheet(self.BUTTON_STYLES['github'])
+        github_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #333333;
+                font-size: 11px;
+                padding: 10px;
+                margin: 5px;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: #24292e;
+            }
+        """)
         
         profile_layout.addWidget(linkedin_btn)
         profile_layout.addWidget(github_btn)
@@ -115,17 +88,15 @@ class EntryPage(QWidget):
         self.ePosition.setStyleSheet("margin-bottom: 20px;")
         layout.addWidget(self.ePosition)
         
-        add_button = QPushButton("Add Entry")
-        add_button.clicked.connect(self.display_text)
-        add_button.setStyleSheet(self.BUTTON_STYLES['primary'])
-        layout.addWidget(add_button)
+        self.add_button = QPushButton("Add Entry")
+        self.add_button.clicked.connect(self.display_text)
+        layout.addWidget(self.add_button)
         
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
         
-        back_button = QPushButton("Back")
-        back_button.clicked.connect(lambda: self.controller.show_frame("Menu"))
-        back_button.setStyleSheet(self.BUTTON_STYLES['secondary'])
-        layout.addWidget(back_button)
+        self.back_button = QPushButton("Back")
+        self.back_button.clicked.connect(lambda: self.controller.show_frame("Menu"))
+        layout.addWidget(self.back_button)
         
         self.setLayout(layout)
         
@@ -134,15 +105,10 @@ class EntryPage(QWidget):
     def copy_linkedin(self):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.LINKEDIN_URL)
-        self.show_message("Copied to Clipboard")
 
     def copy_github(self):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.GITHUB_URL)
-        self.show_message("Copied to Clipboard")
-
-    def show_message(self, message):
-        self.show_message_box(message, "Success", QMessageBox.Information)
 
     def display_text(self):
         data = DataToSheet()
@@ -152,22 +118,10 @@ class EntryPage(QWidget):
         status = "Submitted"
 
         if company == "" or position == "":
-            self.show_error_message("Please fill in both fields")
+            print("Error: Please fill in both fields")
         else:
             data.addData(company, position, date, status)
-            self.show_message("Entry added")
         
         self.eCompany.clear()
         self.ePosition.clear()
         self.eCompany.setFocus()
-
-    def show_error_message(self, message):
-        self.show_message_box(message, "Error", QMessageBox.Warning)
-    
-    def show_message_box(self, message, title, icon):
-        msg_box = QMessageBox()
-        msg_box.setIcon(icon)
-        msg_box.setText(message)
-        msg_box.setWindowTitle(title)
-        msg_box.setStyleSheet(self.MESSAGE_BOX_STYLE)
-        msg_box.exec_()

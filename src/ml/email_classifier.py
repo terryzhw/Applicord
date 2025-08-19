@@ -17,15 +17,6 @@ from transformers import (
     EarlyStoppingCallback
 )
 
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-MODEL_DIR = PROJECT_ROOT / "model"
-MODEL_NAME = 'roberta-base'
-MAX_SEQUENCE_LENGTH = 512
-MODEL_PATH = MODEL_DIR
-CONFIG_FILE = MODEL_PATH / 'config.pkl'
-
 if hasattr(torch.backends, 'mps'):
     torch.backends.mps.is_available = lambda: False
 
@@ -56,7 +47,7 @@ class EmailDataset(Dataset):
 
 
 class EmailClassifier:
-    def __init__(self, model_name=MODEL_NAME, max_length=MAX_SEQUENCE_LENGTH):
+    def __init__(self, model_name="roberta-base", max_length=512):
         self.model_name = model_name
         self.max_length = max_length
         self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
@@ -97,9 +88,9 @@ class EmailClassifier:
         return self.model
     
     def train(self, csv_path: str, text_column: str = 'Email', 
-              label_column: str = 'Status', epochs: int = 8, 
-              batch_size: int = 16, learning_rate: float = 5e-5, 
-              warmup_steps: int = 200, weight_decay: float = 0.01):
+              label_column: str = 'Status', epochs: int = 10, 
+              batch_size: int = 16, learning_rate: float = 2e-5, 
+              warmup_steps: int = 100, weight_decay: float = 0.01):
         data = self.prepare_datasets(csv_path, text_column, label_column)
         train_texts, val_texts, test_texts, train_labels, val_labels, test_labels = data
         
@@ -123,26 +114,27 @@ class EmailClassifier:
         )
         
         training_args = TrainingArguments(
-            output_dir=str(MODEL_DIR),
+            output_dir="../model",
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
+            gradient_accumulation_steps=2,
             warmup_steps=warmup_steps,
             weight_decay=weight_decay,
             learning_rate=learning_rate,
             logging_dir='./logs',
-            logging_steps=25,
-            eval_strategy='steps',
-            eval_steps=25,
-            save_strategy='steps',
-            save_steps=25,
+            logging_steps=10,
+            eval_strategy='epoch',
+            save_strategy='epoch',
             max_grad_norm=1.0,
-            save_total_limit=3,
+            save_total_limit=2,
             load_best_model_at_end=True,
-            metric_for_best_model='eval_loss',
-            greater_is_better=False,
+            metric_for_best_model='eval_accuracy',
+            greater_is_better=True,
             lr_scheduler_type='cosine',
             report_to=[],
+            dataloader_drop_last=True,
+            fp16=False,
         )
         
         def compute_metrics(eval_pred) -> Dict[str, float]:
@@ -172,8 +164,8 @@ class EmailClassifier:
             eval_dataset=val_dataset,
             compute_metrics=compute_metrics,
             callbacks=[EarlyStoppingCallback(
-                early_stopping_patience=3,
-                early_stopping_threshold=0.01
+                early_stopping_patience=5,
+                early_stopping_threshold=0.001
             )]
         )
         
@@ -272,20 +264,4 @@ class EmailClassifier:
             'test_accuracy': test_results['eval_accuracy'],
             'test_loss': test_results['eval_loss']
         }
-
-
-if __name__ == "__main__":
-    classifier = EmailClassifier()
-    
-    classifier.train(str(DATA_DIR / 'data.csv'), epochs=14)
-    classifier.save_model(str(MODEL_DIR))
-    
-
-    classifier.load_model(str(MODEL_DIR))
-    
-    sample_email = "Thank you for your application. Unfortunately, we have decided to move forward with other candidates."
-    result = classifier.predict(sample_email)
-    print(f"Prediction: {result}")
-    print(f"Is rejection: {result['is_rejection']}")
-    print(f"Confidence: {result['confidence']:.3f}")
 
