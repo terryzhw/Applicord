@@ -1,6 +1,6 @@
-import os
 import pickle
 from typing import Dict, Any
+from pathlib import Path
 import torch
 import pandas as pd
 import numpy as np
@@ -16,6 +16,15 @@ from transformers import (
     TrainingArguments, 
     EarlyStoppingCallback
 )
+
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+MODEL_DIR = PROJECT_ROOT / "model"
+MODEL_NAME = 'roberta-base'
+MAX_SEQUENCE_LENGTH = 512
+MODEL_PATH = MODEL_DIR
+CONFIG_FILE = MODEL_PATH / 'config.pkl'
 
 if hasattr(torch.backends, 'mps'):
     torch.backends.mps.is_available = lambda: False
@@ -47,7 +56,7 @@ class EmailDataset(Dataset):
 
 
 class EmailClassifier:
-    def __init__(self, model_name='roberta-base', max_length=512):
+    def __init__(self, model_name=MODEL_NAME, max_length=MAX_SEQUENCE_LENGTH):
         self.model_name = model_name
         self.max_length = max_length
         self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
@@ -75,10 +84,6 @@ class EmailClassifier:
             X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp
         )
         
-        print(f"Train set: {len(X_train)} samples")
-        print(f"Validation set: {len(X_val)} samples")
-        print(f"Test set: {len(X_test)} samples")
-        
         return X_train, X_val, X_test, y_train, y_val, y_test
     
     def create_model(self, num_classes: int = 2) -> RobertaForSequenceClassification:
@@ -91,8 +96,8 @@ class EmailClassifier:
         self.model.to(self.device)
         return self.model
     
-    def train(self, csv_path: str, text_column: str = 'email_text', 
-              label_column: str = 'is_rejection', epochs: int = 8, 
+    def train(self, csv_path: str, text_column: str = 'Email', 
+              label_column: str = 'Status', epochs: int = 8, 
               batch_size: int = 16, learning_rate: float = 5e-5, 
               warmup_steps: int = 200, weight_decay: float = 0.01):
         data = self.prepare_datasets(csv_path, text_column, label_column)
@@ -118,7 +123,7 @@ class EmailClassifier:
         )
         
         training_args = TrainingArguments(
-            output_dir='./model',
+            output_dir=str(MODEL_DIR),
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
@@ -167,7 +172,7 @@ class EmailClassifier:
             eval_dataset=val_dataset,
             compute_metrics=compute_metrics,
             callbacks=[EarlyStoppingCallback(
-                early_stopping_patience=3, 
+                early_stopping_patience=3,
                 early_stopping_threshold=0.01
             )]
         )
@@ -184,9 +189,6 @@ class EmailClassifier:
         }
     
     def predict(self, email_text: str) -> Dict[str, Any]:
-        if self.model is None:
-            raise ValueError("Model not trained yet!")
-        
         inputs = self.tokenizer(
             email_text,
             truncation=True,
@@ -216,9 +218,6 @@ class EmailClassifier:
         }
     
     def save_model(self, filepath: str) -> None:
-        if self.model is None:
-            raise ValueError("No model to save!")
-        
         self.model.save_pretrained(filepath)
         self.tokenizer.save_pretrained(filepath)
         
@@ -251,11 +250,6 @@ class EmailClassifier:
             self.label_encoder = pickle.load(f)
     
     def evaluate_test_set(self) -> Dict[str, float]:
-        if self.model is None:
-            raise ValueError("Model not trained yet!")
-        if self.test_texts is None or self.test_labels is None:
-            raise ValueError("No test set available. Train the model first.")
-        
         test_dataset = EmailDataset(
             self.test_texts, self.test_labels, self.tokenizer, self.max_length
         )
@@ -279,32 +273,19 @@ class EmailClassifier:
             'test_loss': test_results['eval_loss']
         }
 
-def main():
-    classifier = EmailClassifier(model_name='roberta-base')
-    model_path = './model'
-    
-    if os.path.exists(model_path) and os.path.isfile(f"{model_path}/config.pkl"):
-        classifier.load_model(model_path)
-        print("Model loaded successfully")
-        
-        if hasattr(classifier, 'test_texts') and classifier.test_texts is not None:
-            classifier.evaluate_test_set()
-    else:
-        print("Training model...")
-        train_results = classifier.train(
-            'data.csv', 
-            text_column='Email', 
-            label_column='Status', 
-            epochs=16
-        )
-        print(f"Validation Results: {train_results}")
-        
-        classifier.save_model(model_path)
-        classifier.evaluate_test_set()
-        
-    test_email = ""
-    result = classifier.predict(test_email)
-    print(f"Prediction: {result}")
 
 if __name__ == "__main__":
-    main()
+    classifier = EmailClassifier()
+    
+    classifier.train(str(DATA_DIR / 'data.csv'), epochs=14)
+    classifier.save_model(str(MODEL_DIR))
+    
+
+    classifier.load_model(str(MODEL_DIR))
+    
+    sample_email = "Thank you for your application. Unfortunately, we have decided to move forward with other candidates."
+    result = classifier.predict(sample_email)
+    print(f"Prediction: {result}")
+    print(f"Is rejection: {result['is_rejection']}")
+    print(f"Confidence: {result['confidence']:.3f}")
+

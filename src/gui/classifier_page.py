@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt
 
 
-class Menu(QWidget):
+class ClassifierPage(QWidget):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
@@ -11,24 +11,23 @@ class Menu(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
         
-        label = QLabel("Menu")
+        label = QLabel("Classifier")
         label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 20px;")
         layout.addWidget(label)
         
         layout.addStretch()
-        
-        switch_entry_button = QPushButton("To Entry")
-        switch_entry_button.clicked.connect(
-            lambda: self.controller.show_frame("Entry")
-        )
-        switch_entry_button.setStyleSheet("""
+
+        back_button = QPushButton("Back")
+        back_button.clicked.connect(lambda: self.controller.show_frame("Menu"))
+        back_button.setStyleSheet("""
             QPushButton {
                 font-size: 14px;
                 padding: 12px;
                 margin: 10px;
             }
         """)
-        layout.addWidget(switch_entry_button)
+        
+        layout.addWidget(back_button)
         
         self.setLayout(layout)

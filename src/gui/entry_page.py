@@ -1,24 +1,24 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                              QPushButton, QLabel, QMessageBox, QSpacerItem, QSizePolicy, QApplication)
 from PyQt5.QtCore import Qt
-from modules.data import DataToSheet
+from data.data import DataToSheet
 from datetime import datetime
 
-class Entry(QWidget):
+class EntryPage(QWidget):
     LINKEDIN_URL = "https://www.linkedin.com/in/terryzhw/"
     GITHUB_URL = "https://github.com/terryzhw"
     
     BUTTON_STYLES = {
         'linkedin': """
             QPushButton {
-                background-color: #0077b5;
+                background-color: #333333;
                 font-size: 11px;
                 padding: 10px;
                 margin: 5px;
                 text-align: center;
             }
             QPushButton:hover {
-                background-color: #005885;
+                background-color: #24292e;
             }
         """,
         'github': """
@@ -80,7 +80,7 @@ class Entry(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
         
-        title = QLabel("Job Application Entry")
+        title = QLabel("Entry")
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size: 18px; font-weight: bold; margin: 20px;")
         layout.addWidget(title)
@@ -105,7 +105,6 @@ class Entry(QWidget):
         layout.addWidget(company_label)
         
         self.eCompany = QLineEdit()
-        self.eCompany.setPlaceholderText("Enter company name...")
         self.eCompany.setStyleSheet("margin-bottom: 10px;")
         layout.addWidget(self.eCompany)
         
@@ -113,7 +112,6 @@ class Entry(QWidget):
         layout.addWidget(position_label)
         
         self.ePosition = QLineEdit()
-        self.ePosition.setPlaceholderText("Enter position title...")
         self.ePosition.setStyleSheet("margin-bottom: 20px;")
         layout.addWidget(self.ePosition)
         
@@ -136,12 +134,12 @@ class Entry(QWidget):
     def copy_linkedin(self):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.LINKEDIN_URL)
-        self.show_message("LinkedIn URL copied to clipboard")
+        self.show_message("Copied to Clipboard")
 
     def copy_github(self):
         clipboard = QApplication.clipboard()
         clipboard.setText(self.GITHUB_URL)
-        self.show_message("GitHub URL copied to clipboard")
+        self.show_message("Copied to Clipboard")
 
     def show_message(self, message):
         self.show_message_box(message, "Success", QMessageBox.Information)

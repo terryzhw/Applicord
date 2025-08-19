@@ -1,24 +1,37 @@
+
 import os
 import pickle
+from typing import List, Dict, Any, Optional
+from pathlib import Path
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import base64
 import re
-from email_classifier import EmailClassifier
-from modules.data import DataToSheet
 
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from ml.email_classifier import EmailClassifier
+from data.data import DataToSheet
+
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+GMAIL_TOKEN_FILE = PROJECT_ROOT / 'token.pickle'
+GMAIL_CREDENTIALS_FILE = PROJECT_ROOT / 'credentials.json'
 
 class CompanySearcher:
     
     def __init__(self):
         self.service = None
         self.classifier = None
+        self.data_sheet = None
         self.setup_gmail_service()
         self.setup_classifier()
+        self.setup_data_sheet()
     
-    def setup_gmail_service(self):
+    def setup_gmail_service(self) -> None:
         creds = self.load_credentials()
         
         if not self.are_credentials_valid(creds):
@@ -28,8 +41,8 @@ class CompanySearcher:
         self.service = build('gmail', 'v1', credentials=creds)
     
     def load_credentials(self):
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
+        if os.path.exists(GMAIL_TOKEN_FILE):
+            with open(GMAIL_TOKEN_FILE, 'rb') as token:
                 return pickle.load(token)
         return None
     
@@ -40,48 +53,45 @@ class CompanySearcher:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(GMAIL_CREDENTIALS_FILE, GMAIL_SCOPES)
             creds = flow.run_local_server(port=0)
         return creds
     
     def save_credentials(self, creds):
-        with open('token.pickle', 'wb') as token:
+        with open(GMAIL_TOKEN_FILE, 'wb') as token:
             pickle.dump(creds, token)
     
     def setup_classifier(self):
-        try:
-            self.classifier = EmailClassifier(model_name='roberta-base')
-            model_path = './model'
-            
-            if self.is_model_available(model_path):
-                self.classifier.load_model(model_path)
-            else:
-                print("Pre-trained model not found. Classification will be disabled.")
-                self.classifier = None
-        except Exception as e:
-            print(f"Error loading email classifier: {e}")
+        self.classifier = EmailClassifier(model_name='roberta-base')
+        model_path = '../../model'
+        
+        if self.is_model_available(model_path):
+            self.classifier.load_model(model_path)
+        else:
+            print("Pre-trained model not found. Classification will be disabled.")
             self.classifier = None
     
     def is_model_available(self, model_path):
         return os.path.exists(model_path) and os.path.isfile(f"{model_path}/config.pkl")
     
-    def search_emails_by_company(self, company_name, max_results=None):
-        try:
-            print("-" * 50)
-            messages = self.fetch_email_messages(company_name, max_results)
-            
-            if not messages:
-                print("No emails found")
-                return []
-            
-            print(f"Found {len(messages)} emails")
-            print("-" * 50)
-            
-            return self.process_email_messages(messages, company_name)
-            
-        except Exception as error:
-            print(f"An error occurred: {error}")
+    def setup_data_sheet(self):
+        self.data_sheet = DataToSheet()
+        if not hasattr(self.data_sheet, 'ws') or self.data_sheet.ws is None:
+            print("Warning: Could not connect to spreadsheet. Status updates will be disabled.")
+            self.data_sheet = None
+    
+    def search_emails_by_company(self, company_name: str, max_results: Optional[int] = None) -> List[Dict[str, Any]]:
+        print("-" * 50)
+        messages = self.fetch_email_messages(company_name, max_results)
+        
+        if not messages:
+            print("No emails found")
             return []
+        
+        print(f"Found {len(messages)} emails")
+        print("-" * 50)
+        
+        return self.process_email_messages(messages, company_name)
     
     def fetch_email_messages(self, company_name, max_results):
         query = f'{company_name}'
@@ -114,19 +124,16 @@ class CompanySearcher:
         emails_data = []
         rejection_count = 0
         
-        for i, message in enumerate(messages, 1):
-            try:
-                email_data = self.get_email_details(message['id'])
-                is_rejection = self.classify_email(email_data)
+        for message in messages:
+            email_data = self.get_email_details(message['id'])
+            is_rejection = self.classify_email(email_data)
+            
+            if self.should_include_email(is_rejection):
+                emails_data.append(email_data)
+                rejection_count += 1
+                self.display_email_summary(email_data, rejection_count, is_rejection)
                 
-                if self.should_include_email(is_rejection):
-                    emails_data.append(email_data)
-                    rejection_count += 1
-                    self.display_email_summary(email_data, rejection_count, is_rejection)
-                    
-            except Exception as e:
-                print(f"Error processing email {i}: {str(e)}")
-                continue
+                self.update_company_status_to_rejected(company_name)
         
         return emails_data
     
@@ -151,6 +158,12 @@ class CompanySearcher:
     
     def should_include_email(self, is_rejection):
         return is_rejection
+    
+    def update_company_status_to_rejected(self, company_name):
+        if self.data_sheet is None:
+            return
+        
+        self.data_sheet.updateCompanyStatus(company_name, "Rejected")
     
     def display_email_summary(self, email_data, count, is_rejection):
         status_indicator = "Rejection" if is_rejection else "📧"
@@ -213,10 +226,7 @@ class CompanySearcher:
         try:
             return base64.urlsafe_b64decode(data).decode('utf-8')
         except UnicodeDecodeError:
-            try:
-                return base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
-            except Exception:
-                return ""
+            return base64.urlsafe_b64decode(data).decode('utf-8', errors='ignore')
         except Exception:
             return ""
     
@@ -248,43 +258,22 @@ class CompanySearcher:
         return self.decode_base64_data(body_data) if body_data else ""
     
     def clean_html_if_needed(self, body):
-        if self.contains_html(body):
+        if '<' in body and '>' in body:
             body = re.sub(r'<[^>]+>', '', body)
             body = ' '.join(body.split())
         return body
     
-    def contains_html(self, text):
-        return '<' in text and '>' in text
-    
-    def search_and_display_detailed(self, company_name, max_results=None):
-        emails = self.search_emails_by_company(company_name, max_results)
-        
-        for email_data in emails:
-            if email_data['body']:
-                clean_body = self.clean_html_content(email_data['body'])
-                print(clean_body)
-        
-        return emails
-    
-    def clean_html_content(self, content):
-        clean_content = re.sub(r'<[^>]+>', '', content)
-        return ' '.join(clean_content.split())
     
     def search_all_companies_from_spreadsheet(self, max_results_per_company=None):
-        try:
-            companies = self.get_companies_from_spreadsheet()
-            if not companies:
-                return []
-            
-            self.display_search_header(companies)
-            all_emails = self.search_multiple_companies(companies, max_results_per_company)
-            self.display_search_summary(all_emails)
-            
-            return all_emails
-            
-        except Exception as error:
-            self.handle_spreadsheet_error(error)
+        companies = self.get_companies_from_spreadsheet()
+        if not companies:
             return []
+        
+        self.display_search_header(companies)
+        all_emails = self.search_multiple_companies(companies, max_results_per_company)
+        self.display_search_summary(all_emails)
+        
+        return all_emails
     
     def get_companies_from_spreadsheet(self):
         data_sheet = DataToSheet()
@@ -320,11 +309,6 @@ class CompanySearcher:
         print(f"\n\nSUMMARY:")
         print(f"Rejection emails found: {len(all_emails)}")
     
-    def handle_spreadsheet_error(self, error):
-        import traceback
-        print(f"Error searching companies from spreadsheet: {error}")
-        print("Full traceback:")
-        traceback.print_exc()
 
 def main():
     searcher = CompanySearcher()
