@@ -4,24 +4,15 @@ from PyQt5.QtCore import Qt
 from sheet.sheet_manager import SheetManager
 from datetime import datetime
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.gui_styles import COMMON_STYLES, get_special_button_style
+
 class EntryPage(QWidget):
     LINKEDIN_URL = "https://www.linkedin.com/in/terryzhw/"
     GITHUB_URL = "https://github.com/terryzhw"
     
-    MESSAGE_BOX_STYLE = """
-        QMessageBox {
-            background-color: #2b2b2b;
-            color: #ffffff;
-        }
-        QMessageBox QPushButton {
-            background-color: #404040;
-            color: #ffffff;
-            border: 1px solid #555555;
-            border-radius: 5px;
-            padding: 8px;
-            min-width: 60px;
-        }
-    """
 
     def __init__(self, controller):
         super().__init__()
@@ -33,40 +24,18 @@ class EntryPage(QWidget):
         
         title = QLabel("Entry")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size: 18px; font-weight: bold; margin: 20px;")
+        title.setStyleSheet(COMMON_STYLES['title'])
         layout.addWidget(title)
         
         profile_layout = QHBoxLayout()
         
         linkedin_btn = QPushButton(f"Copy LinkedIn\n{self.LINKEDIN_URL}")
         linkedin_btn.clicked.connect(self.copy_linkedin)
-        linkedin_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #333333;
-                font-size: 11px;
-                padding: 10px;
-                margin: 5px;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background-color: #24292e;
-            }
-        """)
+        linkedin_btn.setStyleSheet(get_special_button_style())
         
         github_btn = QPushButton(f"Copy GitHub\n{self.GITHUB_URL}")
         github_btn.clicked.connect(self.copy_github)
-        github_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #333333;
-                font-size: 11px;
-                padding: 10px;
-                margin: 5px;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background-color: #24292e;
-            }
-        """)
+        github_btn.setStyleSheet(get_special_button_style())
         
         profile_layout.addWidget(linkedin_btn)
         profile_layout.addWidget(github_btn)
@@ -78,14 +47,14 @@ class EntryPage(QWidget):
         layout.addWidget(company_label)
         
         self.eCompany = QLineEdit()
-        self.eCompany.setStyleSheet("margin-bottom: 10px;")
+        self.eCompany.setStyleSheet(COMMON_STYLES['input_margin_small'])
         layout.addWidget(self.eCompany)
         
         position_label = QLabel("Position:")
         layout.addWidget(position_label)
         
         self.ePosition = QLineEdit()
-        self.ePosition.setStyleSheet("margin-bottom: 20px;")
+        self.ePosition.setStyleSheet(COMMON_STYLES['input_margin_large'])
         layout.addWidget(self.ePosition)
         
         self.add_button = QPushButton("Add Entry")

@@ -117,8 +117,9 @@ class EmailClassifier:
             val_texts, val_labels, self.tokenizer, self.max_length
         )
         
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         training_args = TrainingArguments(
-            output_dir='../model',
+            output_dir="../model_temp",
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
@@ -129,13 +130,9 @@ class EmailClassifier:
             logging_steps=25,
             eval_strategy='steps',
             eval_steps=25,
-            save_strategy='steps',
-            save_steps=25,
+            save_strategy='no',
+            load_best_model_at_end=False,
             max_grad_norm=1.0,
-            save_total_limit=3,
-            load_best_model_at_end=True,
-            metric_for_best_model='eval_loss',
-            greater_is_better=False,
             lr_scheduler_type='cosine',
             report_to=[],
         )
@@ -165,11 +162,7 @@ class EmailClassifier:
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
-            compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(
-                early_stopping_patience=3, 
-                early_stopping_threshold=0.01
-            )]
+            compute_metrics=compute_metrics
         )
         
         trainer.train()
@@ -177,6 +170,18 @@ class EmailClassifier:
         val_results = trainer.evaluate()
         print(f"Final Validation Loss: {val_results['eval_loss']:.4f}")
         print(f"Final Validation Accuracy: {val_results['eval_accuracy']:.4f}")
+        
+        # Save the final model to project directory
+        model_save_path = "../model"
+        print(f"Saving final model to {model_save_path}")
+        self.save_model(model_save_path)
+        
+        # Clean up temporary training directory
+        import shutil
+        temp_dir = os.path.join("../model_temp")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+            print(f"Cleaned up temporary training directory: {temp_dir}")
         
         return {
             'val_loss': val_results['eval_loss'],
@@ -235,8 +240,9 @@ class EmailClassifier:
             pickle.dump(config, f)
         
     def load_model(self, filepath: str) -> None:
-        # Check if complete model exists
+        # Check if complete model exists (preferred method)
         if os.path.isfile(f"{filepath}/config.pkl"):
+            print(f"Loading final model from: {filepath}")
             with open(f"{filepath}/config.pkl", 'rb') as f:
                 config = pickle.load(f)
             
@@ -252,7 +258,7 @@ class EmailClassifier:
             with open(f"{filepath}/label_encoder.pkl", 'rb') as f:
                 self.label_encoder = pickle.load(f)
         else:
-            # Load from latest checkpoint
+            # Fallback: Load from latest checkpoint (legacy support)
             checkpoint_dirs = [d for d in os.listdir(filepath) if d.startswith('checkpoint-')]
             if not checkpoint_dirs:
                 raise ValueError(f"No model or checkpoints found in {filepath}")

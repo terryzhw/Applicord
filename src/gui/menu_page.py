@@ -1,6 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.gui_styles import COMMON_STYLES
+
 
 class MenuPage(QWidget):
     def __init__(self, controller):
@@ -13,7 +18,7 @@ class MenuPage(QWidget):
         
         label = QLabel("Menu")
         label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 20px;")
+        label.setStyleSheet(COMMON_STYLES['title'])
         layout.addWidget(label)
         
         layout.addStretch()

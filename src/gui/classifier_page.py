@@ -4,6 +4,11 @@ import os
 from ml.email_classifier import EmailClassifier
 from search.email_search import CompanySearcher
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.gui_styles import COMMON_STYLES
+
 
 class ClassifierPage(QWidget):
     def __init__(self, controller):
@@ -16,7 +21,7 @@ class ClassifierPage(QWidget):
         
         label = QLabel("Classifier")
         label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 20px;")
+        label.setStyleSheet(COMMON_STYLES['title'])
         layout.addWidget(label)
         
         layout.addStretch()
@@ -28,7 +33,7 @@ class ClassifierPage(QWidget):
 
         self.eClassifier = QLineEdit()
         self.eClassifier.setPlaceholderText("Enter an integer...")
-        self.eClassifier.setStyleSheet("margin-bottom: 10px;")
+        self.eClassifier.setStyleSheet(COMMON_STYLES['input_margin_small'])
         layout.addWidget(self.eClassifier)
 
 
@@ -63,7 +68,6 @@ class ClassifierPage(QWidget):
             print("Error: Please enter an integer")
         else:
             classifier.train("../data.csv", epochs=int(epoch))
-            classifier.save_model("../../model")
 
     def run_search(self):
         searcher = CompanySearcher()

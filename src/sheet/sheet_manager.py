@@ -1,12 +1,12 @@
 
 import os
-import pickle
 from pathlib import Path
 from dotenv import load_dotenv
 import gspread
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.errors import HttpError
+
+import sys
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.google_credential_manager import GoogleCredentialManager
 
 
 load_dotenv()
@@ -21,23 +21,16 @@ TOKEN = "../sheets_token.pickle"
 CREDENTIALS_PATH = os.getenv('CREDENTIALS', '../credentials.json')
 
 class SheetManager:
+    HEADER_TERMS = {
+        'company', 'position', 'date', 'status', 'submitted', 'rejected', 
+        'in progress', 'key', 'applicord', 'notes', 'application'
+    }
+    
     def __init__(self):
-        creds = None
-
-        if os.path.exists(TOKEN):
-            with open(TOKEN, 'rb') as token:
-                creds = pickle.load(token)
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    CREDENTIALS_PATH, SHEETS_SCOPES)
-                creds = flow.run_local_server(port=0)
-            with open(TOKEN, 'wb') as token:
-                pickle.dump(creds, token)
-
+        credential_manager = GoogleCredentialManager(
+            TOKEN, CREDENTIALS_PATH, SHEETS_SCOPES
+        )
+        creds = credential_manager.get_credentials()
         self.gc = gspread.authorize(creds)
         ss = self.gc.open_by_key(SPREADSHEET_ID)
         self.ws = ss.worksheet(WORKSHEET_NAME)
@@ -56,15 +49,11 @@ class SheetManager:
         all_val = self.ws.get_all_values()
         companies = []
         
-        header_terms = {
-            'company', 'position', 'date', 'status', 'submitted', 'rejected', 
-            'in progress', 'key', 'applicord', 'notes', 'application'
-        }
         
         for row in all_val[1:] if len(all_val) > 1 else all_val:
             if len(row) > 0 and row[0]:
                 company_name = row[0].strip()
-                if company_name and company_name.lower() not in header_terms:
+                if company_name and company_name.lower() not in self.HEADER_TERMS:
                     companies.append(company_name)
         
         unique_companies = []
@@ -91,17 +80,13 @@ class SheetManager:
         all_val = self.ws.get_all_values()
         companies_with_dates = []
         
-        header_terms = {
-            'company', 'position', 'date', 'status', 'submitted', 'rejected', 
-            'in progress', 'key', 'applicord', 'notes', 'application'
-        }
         
         for row in all_val[1:] if len(all_val) > 1 else all_val:
             if len(row) >= 3 and row[0]:
                 company_name = row[0].strip()
                 application_date = row[2].strip() if row[2] else None
                 
-                if company_name and company_name.lower() not in header_terms:
+                if company_name and company_name.lower() not in self.HEADER_TERMS:
                     companies_with_dates.append((company_name, application_date))
         
         def sort_key(entry):

@@ -1,21 +1,18 @@
 
 import os
-import pickle
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import base64
 import re
-from datetime import datetime, timedelta
-from dateutil import parser
 
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from ml.email_classifier import EmailClassifier
 from sheet.sheet_manager import SheetManager
+from utils.google_credential_manager import GoogleCredentialManager
+from utils.date_utils import DateRangeUtils
 
 
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -33,38 +30,15 @@ class CompanySearcher:
         self.setup_data_sheet()
     
     def setup_gmail_service(self) -> None:
-        creds = self.load_credentials()
-        
-        if not self.are_credentials_valid(creds):
-            creds = self.refresh_or_create_credentials(creds)
-            self.save_credentials(creds)
-        
+        credential_manager = GoogleCredentialManager(
+            GMAIL_TOKEN_FILE, GMAIL_CREDENTIALS_FILE, GMAIL_SCOPES
+        )
+        creds = credential_manager.get_credentials()
         self.service = build('gmail', 'v1', credentials=creds)
-    
-    def load_credentials(self):
-        if os.path.exists(GMAIL_TOKEN_FILE):
-            with open(GMAIL_TOKEN_FILE, 'rb') as token:
-                return pickle.load(token)
-        return None
-    
-    def are_credentials_valid(self, creds):
-        return creds is not None and creds.valid
-    
-    def refresh_or_create_credentials(self, creds):
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(GMAIL_CREDENTIALS_FILE, GMAIL_SCOPES)
-            creds = flow.run_local_server(port=0)
-        return creds
-    
-    def save_credentials(self, creds):
-        with open(GMAIL_TOKEN_FILE, 'wb') as token:
-            pickle.dump(creds, token)
     
     def setup_classifier(self):
         self.classifier = EmailClassifier(model_name='roberta-base')
-        model_path = '../../model'
+        model_path = '../model'
         
         if self.is_model_available(model_path):
             self.classifier.load_model(model_path)
@@ -236,30 +210,13 @@ class CompanySearcher:
         return self.clean_html_if_needed(body)
     
     def create_date_filter(self, application_date):
-        try:
-            app_date = parser.parse(application_date)
-            start_date = app_date
-            end_date = app_date + timedelta(days=180)
-            
-            start_str = start_date.strftime('%Y/%m/%d')
-            end_str = end_date.strftime('%Y/%m/%d')
-            
-            return f'after:{start_str} before:{end_str}'
-        except (ValueError, TypeError):
+        date_filter = DateRangeUtils.create_gmail_date_filter(application_date)
+        if not date_filter:
             print(f"Warning: Could not parse application date '{application_date}'. Skipping date filter.")
-            return None
+        return date_filter
     
     def is_email_in_date_range(self, email_data, application_date):
-        try:
-            app_date = parser.parse(application_date)
-            email_date = parser.parse(email_data['date'])
-            
-            start_date = app_date
-            end_date = app_date + timedelta(days=180)
-            
-            return start_date <= email_date <= end_date
-        except (ValueError, TypeError):
-            return True
+        return DateRangeUtils.is_email_in_date_range(email_data['date'], application_date)
     
     def decode_base64_data(self, data):
         try:
