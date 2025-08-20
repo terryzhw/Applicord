@@ -8,17 +8,18 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import base64
 import re
+from datetime import datetime, timedelta
+from dateutil import parser
 
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from ml.email_classifier import EmailClassifier
-from data.data import DataToSheet
+from sheet.sheet_manager import SheetManager
 
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-GMAIL_TOKEN_FILE = '../token.pickle'
+GMAIL_TOKEN_FILE = '../gmail_token.pickle'
 GMAIL_CREDENTIALS_FILE = '../credentials.json'
 
 class CompanySearcher:
@@ -63,27 +64,29 @@ class CompanySearcher:
     
     def setup_classifier(self):
         self.classifier = EmailClassifier(model_name='roberta-base')
-        model_path = '../model'
+        model_path = '../../model'
         
         if self.is_model_available(model_path):
             self.classifier.load_model(model_path)
         else:
             print("Error: model not found")
-            self.classifier = None
             
     
     def is_model_available(self, model_path):
-        return os.path.exists(model_path) and os.path.isfile(f"{model_path}/config.pkl")
+        if not os.path.exists(model_path):
+            return False
+        if os.path.isfile(f"{model_path}/config.pkl"):
+            return True
     
     def setup_data_sheet(self):
-        self.data_sheet = DataToSheet()
+        self.data_sheet = SheetManager()
         if not hasattr(self.data_sheet, 'ws') or self.data_sheet.ws is None:
             print("Warning: Could not connect to spreadsheet. Status updates will be disabled.")
             self.data_sheet = None
     
-    def search_emails_by_company(self, company_name: str, max_results: Optional[int] = None) -> List[Dict[str, Any]]:
+    def search_emails_by_company(self, company_name: str, max_results: Optional[int] = None, application_date: Optional[str] = None) -> List[Dict[str, Any]]:
         print("-" * 50)
-        messages = self.fetch_email_messages(company_name, max_results)
+        messages = self.fetch_email_messages(company_name, max_results, application_date)
         
         if not messages:
             print("No emails found")
@@ -92,10 +95,15 @@ class CompanySearcher:
         print(f"Found {len(messages)} emails")
         print("-" * 50)
         
-        return self.process_email_messages(messages, company_name)
+        return self.process_email_messages(messages, company_name, application_date)
     
-    def fetch_email_messages(self, company_name, max_results):
+    def fetch_email_messages(self, company_name, max_results, application_date=None):
         query = f'{company_name}'
+        
+        if application_date:
+            date_filter = self.create_date_filter(application_date)
+            if date_filter:
+                query += f' {date_filter}'
         
         request_params = {
             'userId': 'me',
@@ -121,12 +129,16 @@ class CompanySearcher:
         
         return messages
     
-    def process_email_messages(self, messages, company_name):
+    def process_email_messages(self, messages, company_name, application_date=None):
         emails_data = []
         rejection_count = 0
         
         for message in messages:
             email_data = self.get_email_details(message['id'])
+            
+            if application_date and not self.is_email_in_date_range(email_data, application_date):
+                continue
+                
             is_rejection = self.classify_email(email_data)
             
             if self.should_include_email(is_rejection):
@@ -223,6 +235,32 @@ class CompanySearcher:
         
         return self.clean_html_if_needed(body)
     
+    def create_date_filter(self, application_date):
+        try:
+            app_date = parser.parse(application_date)
+            start_date = app_date
+            end_date = app_date + timedelta(days=180)
+            
+            start_str = start_date.strftime('%Y/%m/%d')
+            end_str = end_date.strftime('%Y/%m/%d')
+            
+            return f'after:{start_str} before:{end_str}'
+        except (ValueError, TypeError):
+            print(f"Warning: Could not parse application date '{application_date}'. Skipping date filter.")
+            return None
+    
+    def is_email_in_date_range(self, email_data, application_date):
+        try:
+            app_date = parser.parse(application_date)
+            email_date = parser.parse(email_data['date'])
+            
+            start_date = app_date
+            end_date = app_date + timedelta(days=180)
+            
+            return start_date <= email_date <= end_date
+        except (ValueError, TypeError):
+            return True
+    
     def decode_base64_data(self, data):
         try:
             return base64.urlsafe_b64decode(data).decode('utf-8')
@@ -266,18 +304,19 @@ class CompanySearcher:
     
     
     def search_all_companies_from_spreadsheet(self, max_results_per_company=None):
-        companies = self.get_companies_from_spreadsheet()
-        if not companies:
+        companies_with_dates = self.get_companies_with_dates_from_spreadsheet()
+        if not companies_with_dates:
             return []
         
+        companies = [entry[0] for entry in companies_with_dates]
         self.display_search_header(companies)
-        all_emails = self.search_multiple_companies(companies, max_results_per_company)
+        all_emails = self.search_multiple_companies_with_dates(companies_with_dates, max_results_per_company)
         self.display_search_summary(all_emails)
         
         return all_emails
     
     def get_companies_from_spreadsheet(self):
-        data_sheet = DataToSheet()
+        data_sheet = SheetManager()
         companies = data_sheet.getCompanyNames()
         
         if not companies:
@@ -286,8 +325,18 @@ class CompanySearcher:
         
         return companies
     
+    def get_companies_with_dates_from_spreadsheet(self):
+        data_sheet = SheetManager()
+        companies_with_dates = data_sheet.getCompaniesWithDates()
+        
+        if not companies_with_dates:
+            print("No companies found")
+            return {}
+        
+        return companies_with_dates
+    
     def display_search_header(self, companies):
-        print(f"Found {len(companies)} companies")
+        print(f"Found {len(companies)} entries")
         print(companies)
         print("-" * 50)
     
@@ -301,6 +350,26 @@ class CompanySearcher:
             all_emails.extend(emails)
             
             if i < len(companies):
+                print(f"Completed {company}")
+                print("-" * 50)
+        
+        return all_emails
+    
+    def search_multiple_companies_with_dates(self, companies_with_dates, max_results_per_company):
+        all_emails = []
+        
+        for i, (company, application_date) in enumerate(companies_with_dates, 1):
+            print(f"\n[{i}/{len(companies_with_dates)}] Searching for: {company}")
+            
+            if application_date:
+                print(f"Application date: {application_date}")
+            else:
+                print("No application date found - searching all emails")
+            
+            emails = self.search_emails_by_company(company, max_results_per_company, application_date)
+            all_emails.extend(emails)
+            
+            if i < len(companies_with_dates):
                 print(f"Completed {company}")
                 print("-" * 50)
         

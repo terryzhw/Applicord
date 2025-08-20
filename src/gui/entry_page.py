@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                              QPushButton, QLabel, QMessageBox, QSpacerItem, QSizePolicy, QApplication)
 from PyQt5.QtCore import Qt
-from data.data import DataToSheet
+from sheet.sheet_manager import SheetManager
 from datetime import datetime
 
 class EntryPage(QWidget):
@@ -111,7 +111,7 @@ class EntryPage(QWidget):
         clipboard.setText(self.GITHUB_URL)
 
     def display_text(self):
-        data = DataToSheet()
+        data = SheetManager()
         company = self.eCompany.text()
         position = self.ePosition.text()
         date = datetime.today().strftime('%m-%d-%Y')

@@ -11,23 +11,21 @@ from googleapiclient.errors import HttpError
 
 load_dotenv()
 
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent
 SHEETS_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     'https://www.googleapis.com/auth/drive.metadata.readonly'
 ]
-SHEETS_TOKEN_FILE = PROJECT_ROOT / 'sheets_token.pickle'
 SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')
 WORKSHEET_NAME = os.getenv('WORKSHEET_NAME')
-CREDENTIALS_PATH = os.getenv('CREDENTIALS', str(PROJECT_ROOT / 'credentials.json'))
+TOKEN = "../sheets_token.pickle"
+CREDENTIALS_PATH = os.getenv('CREDENTIALS', '../credentials.json')
 
-class DataToSheet:
+class SheetManager:
     def __init__(self):
         creds = None
 
-        if os.path.exists(SHEETS_TOKEN_FILE):
-            with open(SHEETS_TOKEN_FILE, 'rb') as token:
+        if os.path.exists(TOKEN):
+            with open(TOKEN, 'rb') as token:
                 creds = pickle.load(token)
 
         if not creds or not creds.valid:
@@ -37,7 +35,7 @@ class DataToSheet:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     CREDENTIALS_PATH, SHEETS_SCOPES)
                 creds = flow.run_local_server(port=0)
-            with open(SHEETS_TOKEN_FILE, 'wb') as token:
+            with open(TOKEN, 'wb') as token:
                 pickle.dump(creds, token)
 
         self.gc = gspread.authorize(creds)
@@ -77,6 +75,46 @@ class DataToSheet:
                 seen.add(company)
         
         return unique_companies
+    
+    def getCompanyApplicationDate(self, company_name):
+        all_val = self.ws.get_all_values()
+        
+        for row in all_val:
+            if len(row) >= 3 and row[0].strip().lower() == company_name.lower():
+                return row[2].strip() if row[2] else None
+        
+        return None
+    
+    def getCompaniesWithDates(self):
+        from dateutil import parser
+        
+        all_val = self.ws.get_all_values()
+        companies_with_dates = []
+        
+        header_terms = {
+            'company', 'position', 'date', 'status', 'submitted', 'rejected', 
+            'in progress', 'key', 'applicord', 'notes', 'application'
+        }
+        
+        for row in all_val[1:] if len(all_val) > 1 else all_val:
+            if len(row) >= 3 and row[0]:
+                company_name = row[0].strip()
+                application_date = row[2].strip() if row[2] else None
+                
+                if company_name and company_name.lower() not in header_terms:
+                    companies_with_dates.append((company_name, application_date))
+        
+        def sort_key(entry):
+            _, date = entry
+            try:
+                if date:
+                    return parser.parse(date)
+                return parser.parse('1900-01-01')
+            except:
+                return parser.parse('1900-01-01')  
+        
+        companies_with_dates.sort(key=sort_key)
+        return companies_with_dates
     
     def updateCompanyStatus(self, company_name, new_status):
         all_val = self.ws.get_all_values()

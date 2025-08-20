@@ -62,7 +62,7 @@ class ClassifierPage(QWidget):
         elif not epoch.isdigit():
             print("Error: Please enter an integer")
         else:
-            classifier.train("../../data.csv", epochs=int(epoch))
+            classifier.train("../data.csv", epochs=int(epoch))
             classifier.save_model("../../model")
 
     def run_search(self):
