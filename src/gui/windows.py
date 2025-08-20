@@ -3,21 +3,6 @@ from gui.menu_page import MenuPage
 from gui.entry_page import EntryPage
 from gui.classifier_page import ClassifierPage
 
-# App settings
-APP_NAME = "Applicord"
-APP_VERSION = "1.0.0"
-WINDOW_SIZE = (600, 400)
-WINDOW_POSITION = (100, 100)
-
-# Personal links
-LINKEDIN_URL = "https://www.linkedin.com/in/terryzhw/"
-GITHUB_URL = "https://github.com/terryzhw"
-
-# Logging settings
-LOG_LEVEL = "INFO"
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-# Theme settings
 DARK_THEME = {
     'background': '#2b2b2b',
     'text': '#ffffff',
@@ -26,22 +11,13 @@ DARK_THEME = {
     'button_pressed': '#303030',
     'border': '#555555',
     'input_bg': '#404040',
-    'linkedin_color': '#0077b5',
-    'linkedin_hover': '#005885',
-    'github_color': '#333333',
-    'github_hover': '#24292e',
-    'success_color': '#28a745',
-    'success_hover': '#218838',
-    'secondary_color': '#6c757d',
-    'secondary_hover': '#5a6268'
 }
-
 
 class Windows(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(APP_NAME)
-        self.setGeometry(*WINDOW_POSITION, *WINDOW_SIZE)
+        self.setWindowTitle("Applicord")
+        self.setGeometry(100, 100, 600, 400)
         
         self.setStyleSheet(f"""
             QMainWindow {{

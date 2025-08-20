@@ -1,13 +1,12 @@
 
 import sys
 from PyQt5.QtWidgets import QApplication
-from gui.windows import Windows, APP_NAME, APP_VERSION
+from gui.windows import Windows
 
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName(APP_NAME)
-    app.setApplicationVersion(APP_VERSION)
+    app.setApplicationName("Applicord")
     main_window = Windows()
     main_window.show()
     sys.exit(app.exec_())

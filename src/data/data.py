@@ -20,7 +20,7 @@ SHEETS_SCOPES = [
 SHEETS_TOKEN_FILE = PROJECT_ROOT / 'sheets_token.pickle'
 SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')
 WORKSHEET_NAME = os.getenv('WORKSHEET_NAME')
-CREDENTIALS_PATH = os.getenv('CREDENTIALS')
+CREDENTIALS_PATH = os.getenv('CREDENTIALS', str(PROJECT_ROOT / 'credentials.json'))
 
 class DataToSheet:
     def __init__(self):

@@ -1,6 +1,6 @@
+import os
 import pickle
 from typing import Dict, Any
-from pathlib import Path
 import torch
 import pandas as pd
 import numpy as np
@@ -47,7 +47,7 @@ class EmailDataset(Dataset):
 
 
 class EmailClassifier:
-    def __init__(self, model_name="roberta-base", max_length=512):
+    def __init__(self, model_name='roberta-base', max_length=512):
         self.model_name = model_name
         self.max_length = max_length
         self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
@@ -75,6 +75,10 @@ class EmailClassifier:
             X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp
         )
         
+        print(f"Train set: {len(X_train)} samples")
+        print(f"Validation set: {len(X_val)} samples")
+        print(f"Test set: {len(X_test)} samples")
+        
         return X_train, X_val, X_test, y_train, y_val, y_test
     
     def create_model(self, num_classes: int = 2) -> RobertaForSequenceClassification:
@@ -88,9 +92,9 @@ class EmailClassifier:
         return self.model
     
     def train(self, csv_path: str, text_column: str = 'Email', 
-              label_column: str = 'Status', epochs: int = 10, 
-              batch_size: int = 16, learning_rate: float = 2e-5, 
-              warmup_steps: int = 100, weight_decay: float = 0.01):
+              label_column: str = 'Status', epochs: int = 8, 
+              batch_size: int = 16, learning_rate: float = 5e-5, 
+              warmup_steps: int = 200, weight_decay: float = 0.01):
         data = self.prepare_datasets(csv_path, text_column, label_column)
         train_texts, val_texts, test_texts, train_labels, val_labels, test_labels = data
         
@@ -114,27 +118,26 @@ class EmailClassifier:
         )
         
         training_args = TrainingArguments(
-            output_dir="../model",
+            output_dir='../model',
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
-            gradient_accumulation_steps=2,
             warmup_steps=warmup_steps,
             weight_decay=weight_decay,
             learning_rate=learning_rate,
             logging_dir='./logs',
-            logging_steps=10,
-            eval_strategy='epoch',
-            save_strategy='epoch',
+            logging_steps=25,
+            eval_strategy='steps',
+            eval_steps=25,
+            save_strategy='steps',
+            save_steps=25,
             max_grad_norm=1.0,
-            save_total_limit=2,
+            save_total_limit=3,
             load_best_model_at_end=True,
-            metric_for_best_model='eval_accuracy',
-            greater_is_better=True,
+            metric_for_best_model='eval_loss',
+            greater_is_better=False,
             lr_scheduler_type='cosine',
             report_to=[],
-            dataloader_drop_last=True,
-            fp16=False,
         )
         
         def compute_metrics(eval_pred) -> Dict[str, float]:
@@ -164,8 +167,8 @@ class EmailClassifier:
             eval_dataset=val_dataset,
             compute_metrics=compute_metrics,
             callbacks=[EarlyStoppingCallback(
-                early_stopping_patience=5,
-                early_stopping_threshold=0.001
+                early_stopping_patience=3, 
+                early_stopping_threshold=0.01
             )]
         )
         
@@ -181,6 +184,9 @@ class EmailClassifier:
         }
     
     def predict(self, email_text: str) -> Dict[str, Any]:
+        if self.model is None:
+            raise ValueError("Model not trained yet!")
+        
         inputs = self.tokenizer(
             email_text,
             truncation=True,
@@ -210,6 +216,9 @@ class EmailClassifier:
         }
     
     def save_model(self, filepath: str) -> None:
+        if self.model is None:
+            raise ValueError("No model to save!")
+        
         self.model.save_pretrained(filepath)
         self.tokenizer.save_pretrained(filepath)
         
@@ -242,6 +251,11 @@ class EmailClassifier:
             self.label_encoder = pickle.load(f)
     
     def evaluate_test_set(self) -> Dict[str, float]:
+        if self.model is None:
+            raise ValueError("Model not trained yet!")
+        if self.test_texts is None or self.test_labels is None:
+            raise ValueError("No test set available. Train the model first.")
+        
         test_dataset = EmailDataset(
             self.test_texts, self.test_labels, self.tokenizer, self.max_length
         )
@@ -264,4 +278,4 @@ class EmailClassifier:
             'test_accuracy': test_results['eval_accuracy'],
             'test_loss': test_results['eval_loss']
         }
-
+    

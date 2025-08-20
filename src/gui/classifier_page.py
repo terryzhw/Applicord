@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit
 from PyQt5.QtCore import Qt
+import os
 from ml.email_classifier import EmailClassifier
+from search.email_search import CompanySearcher
 
 
 class ClassifierPage(QWidget):
@@ -34,6 +36,12 @@ class ClassifierPage(QWidget):
         self.classifier_button.clicked.connect(self.run_trainer)
         layout.addWidget(self.classifier_button)
 
+        # Search area
+
+        self.search_button = QPushButton("Run Search")
+        self.search_button.clicked.connect(self.run_search)
+        layout.addWidget(self.search_button)
+
 
 
 
@@ -47,10 +55,18 @@ class ClassifierPage(QWidget):
         classifier = EmailClassifier()
         epoch = self.eClassifier.text()
 
-        if epoch == "":
+        if os.path.exists("../../model") and os.path.isfile(f"../../model/config.pkl"):
+            print("Error: model already trained")
+        elif epoch == "":
             print("Error: Please fill in field")
         elif not epoch.isdigit():
             print("Error: Please enter an integer")
         else:
-            classifier.train("../data.csv", epochs=int(epoch))
-            classifier.save_model("../model")
+            classifier.train("../../data.csv", epochs=int(epoch))
+            classifier.save_model("../../model")
+
+    def run_search(self):
+        searcher = CompanySearcher()
+        searcher.search_all_companies_from_spreadsheet()
+
+

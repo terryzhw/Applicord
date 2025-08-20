@@ -18,8 +18,8 @@ from data.data import DataToSheet
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-GMAIL_TOKEN_FILE = PROJECT_ROOT / 'token.pickle'
-GMAIL_CREDENTIALS_FILE = PROJECT_ROOT / 'credentials.json'
+GMAIL_TOKEN_FILE = '../token.pickle'
+GMAIL_CREDENTIALS_FILE = '../credentials.json'
 
 class CompanySearcher:
     
@@ -63,13 +63,14 @@ class CompanySearcher:
     
     def setup_classifier(self):
         self.classifier = EmailClassifier(model_name='roberta-base')
-        model_path = '../../model'
+        model_path = '../model'
         
         if self.is_model_available(model_path):
             self.classifier.load_model(model_path)
         else:
-            print("Pre-trained model not found. Classification will be disabled.")
+            print("Error: model not found")
             self.classifier = None
+            
     
     def is_model_available(self, model_path):
         return os.path.exists(model_path) and os.path.isfile(f"{model_path}/config.pkl")
