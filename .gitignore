@@ -207,7 +207,8 @@ marimo/_lsp/
 __marimo__/
 
 credentials.json
-token.pickle
+gmail_token.pickle
+sheets_token.pickle
 .vscode/
 data.csv
 model/

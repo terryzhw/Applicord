@@ -1,8 +1,13 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.gui_styles import COMMON_STYLES
 
-class Menu(QWidget):
+
+class MenuPage(QWidget):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
@@ -13,7 +18,7 @@ class Menu(QWidget):
         
         label = QLabel("Menu")
         label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 20px;")
+        label.setStyleSheet(COMMON_STYLES['title'])
         layout.addWidget(label)
         
         layout.addStretch()
@@ -29,6 +34,18 @@ class Menu(QWidget):
                 margin: 10px;
             }
         """)
-        layout.addWidget(switch_entry_button)
         
+        switch_classifier_button = QPushButton("To Classifier")
+        switch_classifier_button.clicked.connect(
+            lambda: self.controller.show_frame("Classifier")
+        )
+        switch_classifier_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                padding: 12px;
+                margin: 10px;
+            }
+        """)
+        layout.addWidget(switch_entry_button)
+        layout.addWidget(switch_classifier_button) 
         self.setLayout(layout)
