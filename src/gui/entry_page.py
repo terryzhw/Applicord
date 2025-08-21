@@ -10,6 +10,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from utils.gui_styles import COMMON_STYLES, get_special_button_style
 
 class EntryPage(QWidget):
+    # Personal URLs for quick access during job applications
     LINKEDIN_URL = "https://www.linkedin.com/in/terryzhw/"
     GITHUB_URL = "https://github.com/terryzhw"
     
@@ -69,28 +70,45 @@ class EntryPage(QWidget):
         
         self.setLayout(layout)
         
+        # Set focus to company field for faster data entry
         self.eCompany.setFocus()
 
     def copy_linkedin(self):
-        clipboard = QApplication.clipboard()
-        clipboard.setText(self.LINKEDIN_URL)
+        system_clipboard = QApplication.clipboard()
+        system_clipboard.setText(self.LINKEDIN_URL)
 
     def copy_github(self):
-        clipboard = QApplication.clipboard()
-        clipboard.setText(self.GITHUB_URL)
+        system_clipboard = QApplication.clipboard()
+        system_clipboard.setText(self.GITHUB_URL)
 
     def display_text(self):
-        data = SheetManager()
-        company = self.eCompany.text()
-        position = self.ePosition.text()
-        date = datetime.today().strftime('%m-%d-%Y')
-        status = "Submitted"
-
-        if company == "" or position == "":
-            print("Error: Please fill in both fields")
-        else:
-            data.addData(company, position, date, status)
+        company_name = self.eCompany.text()
+        position_title = self.ePosition.text()
         
+        if not self.validate_input(company_name, position_title):
+            return
+        
+        # Add to spreadsheet for tracking application progress
+        self.add_entry_to_sheet(company_name, position_title)
+        
+        self.reset_form()
+    
+    def validate_input(self, company_name, position_title):
+        # Ensure both fields are filled to maintain data quality
+        if company_name == "" or position_title == "":
+            print("Error: Please fill in both fields")
+            return False
+        return True
+    
+    def add_entry_to_sheet(self, company_name, position_title):
+        sheet_manager = SheetManager()
+        current_date = datetime.today().strftime('%m-%d-%Y')
+        initial_status = "Submitted"
+        
+        sheet_manager.addData(company_name, position_title, current_date, initial_status)
+    
+    def reset_form(self):
         self.eCompany.clear()
         self.ePosition.clear()
+        # Return focus to company field for next entry
         self.eCompany.setFocus()

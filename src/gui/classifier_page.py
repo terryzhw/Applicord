@@ -26,7 +26,6 @@ class ClassifierPage(QWidget):
         
         layout.addStretch()
 
-        # Classifier area
 
         classifier_label = QLabel("Epochs:")
         layout.addWidget(classifier_label)
@@ -41,7 +40,6 @@ class ClassifierPage(QWidget):
         self.classifier_button.clicked.connect(self.run_trainer)
         layout.addWidget(self.classifier_button)
 
-        # Search area
 
         self.search_button = QPushButton("Run Search")
         self.search_button.clicked.connect(self.run_search)
@@ -57,20 +55,35 @@ class ClassifierPage(QWidget):
         self.setLayout(layout)
     
     def run_trainer(self):
-        classifier = EmailClassifier()
-        epoch = self.eClassifier.text()
-
-        if os.path.exists("../../model") and os.path.isfile(f"../../model/config.pkl"):
+        epochs_input = self.eClassifier.text()
+        
+        if not self.validate_training_input(epochs_input):
+            return
+        
+        email_classifier = EmailClassifier()
+        training_epochs = int(epochs_input)
+        email_classifier.train("../data.csv", epochs=training_epochs)
+    
+    def validate_training_input(self, epochs_input):
+        # Prevent accidental retraining which would overwrite existing model
+        model_path = "../../model"
+        if os.path.exists(model_path) and os.path.isfile(f"{model_path}/config.pkl"):
             print("Error: model already trained")
-        elif epoch == "":
+            return False
+        
+        if epochs_input == "":
             print("Error: Please fill in field")
-        elif not epoch.isdigit():
+            return False
+        
+        # Ensure epochs is a valid positive integer
+        if not epochs_input.isdigit():
             print("Error: Please enter an integer")
-        else:
-            classifier.train("../data.csv", epochs=int(epoch))
+            return False
+        
+        return True
 
     def run_search(self):
-        searcher = CompanySearcher()
-        searcher.search_all_companies_from_spreadsheet()
+        email_searcher = CompanySearcher()
+        email_searcher.search_all_companies_from_spreadsheet()
 
 

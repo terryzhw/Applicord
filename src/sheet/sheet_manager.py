@@ -94,8 +94,10 @@ class SheetManager:
             try:
                 if date:
                     return parser.parse(date)
+                # Sort entries without dates to the beginning for easier processing
                 return parser.parse('1900-01-01')
             except:
+                # Handle invalid date formats gracefully
                 return parser.parse('1900-01-01')  
         
         companies_with_dates.sort(key=sort_key)

@@ -9,6 +9,7 @@ def main():
     app.setApplicationName("Applicord")
     main_window = Windows()
     main_window.show()
+    # Ensure clean exit when window is closed
     sys.exit(app.exec_())
 
 

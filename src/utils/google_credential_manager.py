@@ -5,7 +5,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 
 class GoogleCredentialManager:
-    """Centralized Google credential management for OAuth authentication."""
     
     def __init__(self, token_file: str, credentials_file: str, scopes: list):
         self.token_file = token_file
@@ -13,28 +12,24 @@ class GoogleCredentialManager:
         self.scopes = scopes
     
     def get_credentials(self):
-        """Get valid Google credentials, refreshing or creating new ones if needed."""
-        creds = self._load_credentials()
+        creds = self.load_credentials()
         
-        if not self._are_credentials_valid(creds):
-            creds = self._refresh_or_create_credentials(creds)
-            self._save_credentials(creds)
+        if not self.are_credentials_valid(creds):
+            creds = self.refresh_or_create_credentials(creds)
+            self.save_credentials(creds)
         
         return creds
     
-    def _load_credentials(self):
-        """Load credentials from token file if it exists."""
+    def load_credentials(self):
         if os.path.exists(self.token_file):
             with open(self.token_file, 'rb') as token:
                 return pickle.load(token)
         return None
     
-    def _are_credentials_valid(self, creds):
-        """Check if credentials are valid and not expired."""
+    def are_credentials_valid(self, creds):
         return creds is not None and creds.valid
     
-    def _refresh_or_create_credentials(self, creds):
-        """Refresh expired credentials or create new ones."""
+    def refresh_or_create_credentials(self, creds):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
@@ -43,7 +38,6 @@ class GoogleCredentialManager:
             creds = flow.run_local_server(port=0)
         return creds
     
-    def _save_credentials(self, creds):
-        """Save credentials to token file."""
+    def save_credentials(self, creds):
         with open(self.token_file, 'wb') as token:
             pickle.dump(creds, token)
