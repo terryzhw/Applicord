@@ -240,47 +240,24 @@ class EmailClassifier:
             pickle.dump(config, f)
         
     def load_model(self, filepath: str) -> None:
-        # Check if complete model exists (preferred method)
-        if os.path.isfile(f"{filepath}/config.pkl"):
-            print(f"Loading final model from: {filepath}")
-            with open(f"{filepath}/config.pkl", 'rb') as f:
-                config = pickle.load(f)
-            
-            self.model_name = config['model_name']
-            self.max_length = config['max_length']
-            self.test_texts = config.get('test_texts', None)
-            self.test_labels = config.get('test_labels', None)
-            
-            self.model = RobertaForSequenceClassification.from_pretrained(filepath)
-            self.tokenizer = RobertaTokenizer.from_pretrained(filepath)
-            self.model.to(self.device)
-            
-            with open(f"{filepath}/label_encoder.pkl", 'rb') as f:
-                self.label_encoder = pickle.load(f)
-        else:
-            # Fallback: Load from latest checkpoint (legacy support)
-            checkpoint_dirs = [d for d in os.listdir(filepath) if d.startswith('checkpoint-')]
-            if not checkpoint_dirs:
-                raise ValueError(f"No model or checkpoints found in {filepath}")
-            
-            # Get the latest checkpoint
-            latest_checkpoint = max(checkpoint_dirs, key=lambda x: int(x.split('-')[1]))
-            checkpoint_path = os.path.join(filepath, latest_checkpoint)
-            
-            print(f"Loading model from checkpoint: {checkpoint_path}")
-            
-            # Use default values when loading from checkpoint
-            self.model_name = 'roberta-base'  # Default value
-            self.max_length = 512  # Default value
-            self.test_texts = None
-            self.test_labels = None
-            
-            self.model = RobertaForSequenceClassification.from_pretrained(checkpoint_path)
-            self.tokenizer = RobertaTokenizer.from_pretrained(self.model_name)
-            self.model.to(self.device)
-            
-            # Create a default label encoder for reject/not_reject classes
-            self.label_encoder.fit(['not_reject', 'reject'])
+        if not os.path.isfile(f"{filepath}/config.pkl"):
+            raise ValueError(f"No model found in {filepath}")
+        
+        print(f"Loading model from: {filepath}")
+        with open(f"{filepath}/config.pkl", 'rb') as f:
+            config = pickle.load(f)
+        
+        self.model_name = config['model_name']
+        self.max_length = config['max_length']
+        self.test_texts = config.get('test_texts', None)
+        self.test_labels = config.get('test_labels', None)
+        
+        self.model = RobertaForSequenceClassification.from_pretrained(filepath)
+        self.tokenizer = RobertaTokenizer.from_pretrained(filepath)
+        self.model.to(self.device)
+        
+        with open(f"{filepath}/label_encoder.pkl", 'rb') as f:
+            self.label_encoder = pickle.load(f)
     
     def evaluate_test_set(self) -> Dict[str, float]:
         if self.model is None:
