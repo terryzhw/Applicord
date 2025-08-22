@@ -6,7 +6,7 @@ from gui.classifier_page import ClassifierPage
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.gui_styles import MAIN_WINDOW_STYLE
+from utils.styles import MAIN_WINDOW_STYLE
 
 class Windows(QMainWindow):
     def __init__(self):

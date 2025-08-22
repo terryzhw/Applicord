@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.gui_styles import COMMON_STYLES
+from utils.styles import COMMON_STYLES
 
 
 class MenuPage(QWidget):

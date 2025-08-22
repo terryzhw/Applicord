@@ -11,8 +11,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from ml.email_classifier import EmailClassifier
 from sheet.sheet_manager import SheetManager
-from utils.google_credential_manager import GoogleCredentialManager
-from utils.date_utils import DateRangeUtils
+from utils.credential_manager import GoogleCredentialManager
+from utils.date import DateRangeUtils
 
 
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']

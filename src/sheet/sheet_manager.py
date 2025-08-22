@@ -6,7 +6,7 @@ import gspread
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.google_credential_manager import GoogleCredentialManager
+from utils.credential_manager import GoogleCredentialManager
 
 
 load_dotenv()

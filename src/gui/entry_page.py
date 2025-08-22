@@ -7,7 +7,7 @@ from datetime import datetime
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.gui_styles import COMMON_STYLES, get_special_button_style
+from utils.styles import COMMON_STYLES, get_special_button_style
 
 class EntryPage(QWidget):
     # Personal URLs for quick access during job applications
