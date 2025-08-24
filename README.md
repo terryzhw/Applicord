@@ -18,7 +18,7 @@ Applicord is a desktop application designed to efficiently track job application
 
 ### Prerequisites
 
-- Python 3.7+
+- Python 3.7+ (I use 3.10.11)
 - Google account with Gmail and Google Sheets access
 - Git
 
