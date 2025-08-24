@@ -1,9 +1,5 @@
 # Applicord
 
-<p align="center">
-  <i>Streamline your job application tracking with intelligent email classification</i>
-</p>
-
 ## Introduction
 
 Applicord is a desktop application designed to efficiently track job applications by automatically logging them to Google Sheets and intelligently analyzing email responses. Built with PyQt5, it provides a clean interface for managing your job search process while leveraging machine learning to identify rejection emails automatically.
@@ -125,8 +121,8 @@ app/
   <img src="assets/menu.png" alt="" width="300">
   <img src="assets/entry.png" alt="" width="300">
   <img src="assets/classifier.png" alt="" width="300">
-  <img src="assets/traning.png" alt="play" width="300">
-  <img src="assets/search.png" alt="play" width="300">
+  <img src="assets/training.png" alt="" width="300">
+  <img src="assets/search.png" alt="" width="300">
 </p>
 
 ## Support
