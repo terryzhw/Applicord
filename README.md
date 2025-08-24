@@ -25,10 +25,6 @@ Applicord is a desktop application designed to efficiently track job application
 ### Setup
 
 1. **Clone the repository**:
-```bash
-git clone https://github.com/your-username/applicord.git
-cd applicord
-```
 
 2. **Install dependencies**:
 ```bash
