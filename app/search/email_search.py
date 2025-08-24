@@ -11,8 +11,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from ml.email_classifier import EmailClassifier
 from sheet.sheet_manager import SheetManager
-from utils.credential_manager import GoogleCredentialManager
-from utils.date import DateRangeUtils
+from utils.credential_manager import CredentialManager
+from utils.date import *
 
 
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -30,7 +30,7 @@ class CompanySearcher:
         self.setup_data_sheet()
     
     def setup_gmail_service(self) -> None:
-        credential_manager = GoogleCredentialManager(
+        credential_manager = CredentialManager(
             GMAIL_TOKEN_FILE, GMAIL_CREDENTIALS_FILE, GMAIL_SCOPES
         )
         creds = credential_manager.get_credentials()
@@ -232,13 +232,13 @@ class CompanySearcher:
         return self.clean_html_if_needed(body)
     
     def create_date_filter(self, application_date):
-        date_filter = DateRangeUtils.create_gmail_date_filter(application_date)
+        date_filter = create_gmail_date_filter(application_date)
         if not date_filter:
             print(f"Warning: Could not parse application date '{application_date}'. Skipping date filter.")
         return date_filter
     
     def is_email_in_date_range(self, email_data, application_date):
-        return DateRangeUtils.is_email_in_date_range(email_data['date'], application_date)
+        return is_email_in_date_range(email_data['date'], application_date)
     
     def decode_base64_data(self, data):
         try:

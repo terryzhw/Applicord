@@ -17,7 +17,7 @@ from transformers import (
     EarlyStoppingCallback
 )
 
-# Force CPU usage to avoid MPS-related instability issues on M1/M2 Macs
+
 if hasattr(torch.backends, 'mps'):
     torch.backends.mps.is_available = lambda: False
 
@@ -88,10 +88,6 @@ class EmailClassifier:
             train_val_texts, train_val_labels, test_size=0.25, random_state=42, stratify=train_val_labels
         )
         
-        print(f"Train set: {len(train_texts)} samples")
-        print(f"Validation set: {len(val_texts)} samples")
-        print(f"Test set: {len(test_texts)} samples")
-        
         return train_texts, val_texts, test_texts, train_labels, val_labels, test_labels
     
     def create_model(self, num_classes: int = 2) -> RobertaForSequenceClassification:
@@ -155,7 +151,7 @@ class EmailClassifier:
             logging_steps=25,
             eval_strategy='steps',
             eval_steps=25,
-            save_strategy='no',  # We'll save manually to control the final model
+            save_strategy='no',
             load_best_model_at_end=False,
             max_grad_norm=1.0,
             lr_scheduler_type='cosine',
@@ -198,7 +194,6 @@ class EmailClassifier:
         print(f"Final Validation Accuracy: {validation_results['eval_accuracy']:.4f}")
         
         model_save_path = "../model"
-        print(f"Saving final model to {model_save_path}")
         self.save_model(model_save_path)
         
         self.cleanup_temp_files()
@@ -213,11 +208,10 @@ class EmailClassifier:
         temp_directory = os.path.join("../model_temp")
         if os.path.exists(temp_directory):
             shutil.rmtree(temp_directory)
-            print(f"Cleaned up temporary training directory: {temp_directory}")
     
     def predict(self, email_text: str) -> Dict[str, Any]:
         if self.model is None:
-            raise ValueError("Model not trained yet!")
+            raise ValueError("Model not trained yet")
         
         inputs = self.tokenizer(
             email_text,
@@ -268,9 +262,9 @@ class EmailClassifier:
         
     def load_model(self, filepath: str) -> None:
         if not os.path.isfile(f"{filepath}/config.pkl"):
-            raise ValueError(f"No model found in {filepath}")
+            raise ValueError(f"No model found")
         
-        print(f"Loading model from: {filepath}")
+        print("Model loaded")
         with open(f"{filepath}/config.pkl", 'rb') as f:
             config = pickle.load(f)
         
@@ -288,7 +282,7 @@ class EmailClassifier:
     
     def evaluate_test_set(self) -> Dict[str, float]:
         if self.model is None:
-            raise ValueError("Model not trained yet!")
+            raise ValueError("Model not trained yet")
         if self.test_texts is None or self.test_labels is None:
             raise ValueError("No test set available. Train the model first.")
         

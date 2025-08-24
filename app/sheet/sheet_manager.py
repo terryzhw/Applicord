@@ -6,7 +6,7 @@ import gspread
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.credential_manager import GoogleCredentialManager
+from utils.credential_manager import CredentialManager
 
 
 load_dotenv()
@@ -27,7 +27,7 @@ class SheetManager:
     }
     
     def __init__(self):
-        credential_manager = GoogleCredentialManager(
+        credential_manager = CredentialManager(
             TOKEN, CREDENTIALS_PATH, SHEETS_SCOPES
         )
         creds = credential_manager.get_credentials()

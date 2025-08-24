@@ -4,7 +4,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 
-class GoogleCredentialManager:
+class CredentialManager:
     
     def __init__(self, token_file: str, credentials_file: str, scopes: list):
         self.token_file = token_file
