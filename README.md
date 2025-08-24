@@ -127,7 +127,7 @@ app/
 
 ## Support
 
-If you encounter any issues or have questions about HandDJ, please open an issue on the GitHub repository.
+If you encounter any issues or have questions about Applicord, please open an issue on the GitHub repository.
 
 ## License
 
