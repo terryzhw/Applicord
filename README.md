@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Applicord is a desktop application designed to efficiently track job applications by automatically logging them to Google Sheets and intelligently analyzing email responses. Built with PyQt5, it provides a clean interface for managing your job search process while leveraging machine learning to identify rejection emails automatically.
+Applicord is a desktop application designed to efficiently track job applications by automatically logging them to Google Sheets and analyzing email responses. Built with PyQt5, it provides a clean interface for managing your job search process while leveraging machine learning to identify rejection emails automatically.
 
 ## Features
 
